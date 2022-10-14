@@ -22,9 +22,7 @@ class TokenAuthentication(authentication.TokenAuthentication):
         if token.is_expired:
             raise exceptions.AuthenticationFailed("Token expired")
 
-        if not token.user.is_active:
-            raise exceptions.AuthenticationFailed("User inactive")
-
+        user = token.user
         # When LDAP authentication is active try to load user data from LDAP directory
         if settings.REMOTE_AUTH_BACKEND == 'netbox.authentication.LDAPBackend':
             from netbox.authentication import LDAPBackend
@@ -33,11 +31,11 @@ class TokenAuthentication(authentication.TokenAuthentication):
             # Load from LDAP if FIND_GROUP_PERMS is active
             if ldap_backend.settings.FIND_GROUP_PERMS:
                 user = ldap_backend.populate_user(token.user.username)
-                # If the user is found in the LDAP directory use it, if not fallback to the local user
-                if user:
-                    return user, token
 
-        return token.user, token
+        if not token.user.is_active:
+            raise exceptions.AuthenticationFailed("User inactive")
+
+        return user, token
 
 
 class TokenPermissions(DjangoObjectPermissions):
